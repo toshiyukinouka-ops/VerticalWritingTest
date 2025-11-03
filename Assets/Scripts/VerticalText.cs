@@ -1,17 +1,22 @@
 using TMPro;
 using UnityEngine;
 using System.Collections.Generic;
-using System.Linq;
 
+// TMP_Textコンポーネントのテキストを縦書きにするスクリプト
+// 特定の文字を回転させない、または反転させるオプション付き
+// 使用例: 明朝体での縦書き表示など
+// TODO: 、。促音、拗音の位置調整
 [RequireComponent(typeof(TMP_Text))]
 public class VerticalText : MonoBehaviour
 {
     private TMP_Text textComponent;
 
     // 回転させない文字群
+    // 例: 、。・ーなど
     public List<char> noRotateCharacters;
 
     // 反転させたい文字群
+    // 明朝体のー〜など
     public List<char> flipCharacters;
 
     private void Awake()
@@ -33,7 +38,6 @@ public class VerticalText : MonoBehaviour
             if (!characterInfo.isVisible)
                 continue;
 
-
             int materialIndex = characterInfo.materialReferenceIndex;
             int vertexIndex = characterInfo.vertexIndex;
             Vector3[] destVertices = textInfo.meshInfo[materialIndex].vertices;
@@ -41,33 +45,13 @@ public class VerticalText : MonoBehaviour
             Vector3 charCenter = (destVertices[vertexIndex + 0] + destVertices[vertexIndex + 2]) / 2;
             if (IsFlipCharacter(characterInfo.character))
             {
-                // 反転
-                for (int j = 0; j < 4; j++)
-                {
-                    var element = destVertices[vertexIndex + j];
-                    var pos = element - charCenter;
-                    var newPos = new Vector2(pos.x, -pos.y);
-
-                    element = (Vector3)newPos + charCenter;
-                    destVertices[vertexIndex + j] = element;
-                }
+                FlipCharacter(destVertices, vertexIndex, charCenter);
             }
 
             if (IsNoRotateCharacter(characterInfo.character))
                 continue;
 
-            for (int j = 0; j < 4; j++)
-            {
-                var element = destVertices[vertexIndex + j];
-                var pos = element - charCenter;
-                var newPos = new Vector2(
-                    pos.x * Mathf.Cos(90 * Mathf.Deg2Rad) - pos.y * Mathf.Sin(90 * Mathf.Deg2Rad),
-                    pos.x * Mathf.Sin(90 * Mathf.Deg2Rad) + pos.y * Mathf.Cos(90 * Mathf.Deg2Rad)
-                );
-
-                element = (Vector3)newPos + charCenter;
-                destVertices[vertexIndex + j] = element;
-            }
+            RotateCharacter(destVertices, vertexIndex, charCenter);
         }
 
         for (int i = 0; i < textInfo.meshInfo.Length; i++)
@@ -77,13 +61,38 @@ public class VerticalText : MonoBehaviour
         }
     }
 
+    bool IsFlipCharacter(char c)
+    {
+        return flipCharacters.Contains(c);
+    }
+
     bool IsNoRotateCharacter(char c)
     {
         return noRotateCharacters.Contains(c);
     }
 
-    bool IsFlipCharacter(char c)
+    void FlipCharacter(Vector3[] destVertices, int vertexIndex, Vector3 charCenter)
     {
-        return flipCharacters.Contains(c);
+        for (int j = 0; j < 4; j++)
+        {
+            var pos = destVertices[vertexIndex + j] - charCenter;
+            var newPos = new Vector2(pos.x, -pos.y);
+
+            destVertices[vertexIndex + j] = (Vector3)newPos + charCenter;
+        }
+    }
+
+    void RotateCharacter(Vector3[] destVertices, int vertexIndex, Vector3 charCenter)
+    {
+        for (int j = 0; j < 4; j++)
+        {
+            var pos = destVertices[vertexIndex + j] - charCenter;
+            var newPos = new Vector2(
+                pos.x * Mathf.Cos(90 * Mathf.Deg2Rad) - pos.y * Mathf.Sin(90 * Mathf.Deg2Rad),
+                pos.x * Mathf.Sin(90 * Mathf.Deg2Rad) + pos.y * Mathf.Cos(90 * Mathf.Deg2Rad)
+            );
+
+            destVertices[vertexIndex + j] = (Vector3)newPos + charCenter;
+        }
     }
 }
